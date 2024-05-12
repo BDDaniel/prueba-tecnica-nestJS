@@ -9,10 +9,14 @@ import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
 import { jwtConstants } from './constants';
 import { IS_PUBLIC_KEY } from './decorators/public.decorator';
+import { PrismaService } from 'src/prisma.service';
+import { AuthService } from './auth.service';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
   constructor(
+    private prisma: PrismaService,
+    private auth: AuthService,
     private jwtService: JwtService,
     private reflector: Reflector,
   ) {}
@@ -29,6 +33,16 @@ export class AuthGuard implements CanActivate {
 
     const request = context.switchToHttp().getRequest();
     const token = this.extractTokenFromHeader(request);
+
+    const user = await this.prisma.user.findFirst({
+      where: {
+        token: token,
+      },
+    });
+    if (!user) {
+      throw new UnauthorizedException();
+    }
+
     if (!token) {
       throw new UnauthorizedException();
     }
@@ -40,6 +54,7 @@ export class AuthGuard implements CanActivate {
       // so that we can access it in our route handlers
       request['user'] = payload;
     } catch {
+      await this.auth.updateDataAuth(user.mobile_phone, {token: null, session: false});
       throw new UnauthorizedException();
     }
     return true;

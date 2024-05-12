@@ -74,5 +74,13 @@ export class Helper {
         return array;
       }
     }
+
+    public static formatDate(date: Date): string {
+      return `${date.getFullYear()}-${this.padZero(date.getMonth() + 1)}-${this.padZero(date.getDate())}`;
+    }
+    
+    private static padZero(num: number): string {
+      return num.toString().padStart(2, '0');
+    }
   }
   

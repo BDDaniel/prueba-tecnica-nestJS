@@ -3,6 +3,8 @@ import { IsDate, IsDateString, IsEmail, IsNotEmpty, IsString } from 'class-valid
 export class user {
   id: number;
   session_active: boolean;
+  createdBy: number;
+  updatedBy: number;
 
   @IsString({
     message:

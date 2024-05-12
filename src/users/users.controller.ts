@@ -1,7 +1,9 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  Headers,
   HttpException,
   HttpStatus,
   Param,
@@ -11,7 +13,7 @@ import {
 import { UsersService } from './users.service';
 import { Public } from 'src/auth/decorators/public.decorator';
 import { getIdUser } from './pipes/getIdUser.pipe';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiBadRequestResponse, ApiCreatedResponse, ApiNotFoundResponse, ApiOkResponse, ApiParam, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import { user } from './interfaces/users.dto';
 import { Helper } from 'src/shared/Helper';
 
@@ -22,17 +24,27 @@ export class UsersController {
 
   @Get()
   @Public()
+  @ApiOkResponse({ description: 'Lista de usuarios', type: [user] })
   getUsers() {
     return this.usersService.getUsers();
   }
 
   @Get('/:id_user')
+  @ApiParam({ name: 'id_user', description: 'ID del usuario' })
+  @ApiOkResponse({ description: 'Usuario encontrado', type: user })
+  @ApiNotFoundResponse({ description: 'Usuario no encontrado' })
   getUser(@Param('id_user', getIdUser) id: number) {
     return this.usersService.getUser(id);
   }
 
   @Post()
-  createUser(@Body() user: user) {
+  @ApiCreatedResponse({ description: 'Usuario creado exitosamente', type: user })
+  @ApiBadRequestResponse({ description: 'Fecha de nacimiento inválida' })
+  @ApiUnauthorizedResponse({ description: 'No autorizado' })
+  createUser(
+    @Body() user: user,
+    @Headers('authorization') authorization: string,
+  ) {
     const date = user.date_birth;
     if (!Helper.isValidDate(date))
       throw new HttpException(
@@ -49,11 +61,22 @@ export class UsersController {
           ),
         },
       );
-    return this.usersService.createUser(user);
+
+    const token = authorization.split(' ')[1];
+    return this.usersService.createUser(user, token);
   }
 
   @Put('/:id_user')
-  updateUser(@Param('id_user', getIdUser) id: number, @Body() user: user) {
+  @ApiParam({ name: 'id_user', description: 'ID del usuario' })
+  @ApiOkResponse({ description: 'Usuario actualizado', type: user })
+  @ApiNotFoundResponse({ description: 'Usuario no encontrado' })
+  @ApiBadRequestResponse({ description: 'Fecha de nacimiento inválida' })
+  @ApiUnauthorizedResponse({ description: 'No autorizado' })
+  updateUser(
+    @Param('id_user', getIdUser) id: number,
+    @Body() user: user,
+    @Headers('authorization') authorization: string,
+  ) {
     const date = user.date_birth;
     if (!Helper.isValidDate(date))
       throw new HttpException(
@@ -70,6 +93,17 @@ export class UsersController {
           ),
         },
       );
-    return this.usersService.updateUser(id, user);
+
+    const token = authorization.split(' ')[1];
+    return this.usersService.updateUser(id, user, token);
+  }
+
+  @Delete('/:id_user')
+  @ApiParam({ name: 'id_user', description: 'ID del usuario' })
+  @ApiOkResponse({ description: 'Usuario eliminado' })
+  @ApiNotFoundResponse({ description: 'Usuario no encontrado' })
+  @ApiUnauthorizedResponse({ description: 'No autorizado' })
+  deleteUser(@Param('id_user', getIdUser) id: number) {
+    return this.usersService.deleteUser(id);
   }
 }
